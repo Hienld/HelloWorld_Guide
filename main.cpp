@@ -5,7 +5,7 @@ int main()
   std::cout << "Hello world\n";
   // test
   std::cout<<"test"<<std::endl;
-  int* a ;
+  int* a = new int(5);
   std::cout<<*a<<std::endl;
   return 0;
 }
