@@ -12,8 +12,8 @@ pipeline {
                 echo 'Preparing environment...'
                 // Install necessary dependencies (if needed)
                 // You may skip this if your build agents already have the necessary tools installed.
-                sh 'sudo apt-get update'
-                sh 'sudo apt-get install -y build-essential cmake'
+                sh 'apt-get update'
+                sh 'apt-get install -y build-essential cmake'
             }
         }
 
