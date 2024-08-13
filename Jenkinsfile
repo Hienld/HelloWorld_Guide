@@ -15,7 +15,8 @@ pipeline {
         stage('Build') {
             steps {
                 //cmake arguments:  installation: 'InSearchPath'
-                cmakeBuild buildType: 'Release', cleanBuild: true, installation: 'InSearchPath', steps: [[withCmake: true]]
+                //cmakeBuild buildType: 'Release', cleanBuild: true, installation: 'InSearchPath', steps: [[withCmake: true]]
+		cmakeBuild cleanBuild: true, installation: 'InSearchPath', steps: [[withCmake: true]]
             }
         }
 
