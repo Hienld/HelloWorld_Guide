@@ -1,51 +1,89 @@
 pipeline {
-	agent any
+    agent any
+    
+    environment {
+        // You can define environment variables here if needed
+        BUILD_DIR = 'build'
+    }
 
-	options {
-		buildDiscarder(logRotator(numToKeepStr: '10'))
-	}
+    stages {
+        stage('Prepare') {
+            steps {
+                echo 'Preparing environment...'
+                // Install necessary dependencies (if needed)
+                // You may skip this if your build agents already have the necessary tools installed.
+                sh 'sudo apt-get update'
+                sh 'sudo apt-get install -y build-essential cmake'
+            }
+        }
 
-	parameters {
-		booleanParam name: 'RUN_TESTS', defaultValue: true, description: 'Run Tests?'
-		booleanParam name: 'RUN_ANALYSIS', defaultValue: true, description: 'Run Static Code Analysis?'
-		booleanParam name: 'DEPLOY', defaultValue: true, description: 'Deploy Artifacts?'
-	}
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                // Clone or checkout the code from the source control
+                checkout scm
+            }
+        }
 
-	stages {
         stage('Build') {
             steps {
-                cmake arguments: '-DCMAKE_TOOLCHAIN_FILE=~/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake', installation: 'InSearchPath'
-                cmakeBuild buildType: 'Release', cleanBuild: true, installation: 'InSearchPath', steps: [[withCmake: true]]
+                echo 'Building the project...'
+                // Create the build directory and run CMake to generate the build system
+                sh '''
+                mkdir -p ${BUILD_DIR}
+                cd ${BUILD_DIR}
+                cmake ..
+                make
+                '''
             }
         }
 
         stage('Test') {
-            when {
-                environment name: 'RUN_TESTS', value: 'true'
-            }
             steps {
-                ctest 'InSearchPath'
+                echo 'Running tests...'
+                // Run tests using CTest (or another testing framework)
+                sh '''
+                cd ${BUILD_DIR}
+                ctest --output-on-failure
+                '''
             }
         }
 
-        stage('Analyse') {
-            when {
-                environment name: 'RUN_ANALYSIS', value: 'true'
-            }
+        stage('Package') {
             steps {
-                sh label: '', returnStatus: true, script: 'cppcheck . --xml --language=c++ --suppressions-list=suppressions.txt 2> cppcheck-result.xml'
-                publishCppcheck allowNoReport: true, ignoreBlankFiles: true, pattern: '**/cppcheck-result.xml'
+                echo 'Packaging the build artifacts...'
+                // Create packages or archive the binaries
+                sh '''
+                cd ${BUILD_DIR}
+                make package
+                '''
+                archiveArtifacts artifacts: '${BUILD_DIR}/*.tar.gz', allowEmptyArchive: true
             }
         }
 
         stage('Deploy') {
-            when {
-                environment name: 'DEPLOY', value: 'true'
-            }
             steps {
-                sh label: '', returnStatus: true, script: '''cp jenkinsexample ~
-                cp test/testPro ~'''
+                echo 'Deploying to the server...'
+                // Deploy the binary or package to a server or staging environment
+                // This step will depend on your deployment strategy
+                sh '''
+                scp ${BUILD_DIR}/your_binary_or_package.tar.gz user@server:/path/to/deploy/
+                '''
             }
         }
-	}
+    }
+
+    post {
+        always {
+            echo 'Cleaning up...'
+            // Clean up build directory or temporary files
+            sh 'rm -rf ${BUILD_DIR}'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
 }
